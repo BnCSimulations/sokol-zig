@@ -19,6 +19,7 @@ pub fn build(b: *Build) !void {
     const opt_use_wayland = b.option(bool, "wayland", "Force Wayland (default: false, Linux only, not supported in main-line headers)") orelse false;
     const opt_use_egl = b.option(bool, "egl", "Force EGL (default: false, Linux only)") orelse false;
     const opt_with_sokol_imgui = b.option(bool, "with_sokol_imgui", "Add support for sokol_imgui.h bindings") orelse false;
+    const opt_with_sokol_fontstash = b.option(bool, "with_sokol_fontstash", "Add support for sokol_fontstash.h bindings") orelse false;
     const sokol_backend: SokolBackend = if (opt_use_gl) .gl else if (opt_use_wgpu) .wgpu else .auto;
 
     const target = b.standardTargetOptions(.{});
@@ -35,6 +36,7 @@ pub fn build(b: *Build) !void {
         .use_x11 = opt_use_x11,
         .use_egl = opt_use_egl,
         .with_sokol_imgui = opt_with_sokol_imgui,
+        .with_sokol_fontstash = opt_with_sokol_fontstash,
         .emsdk = emsdk,
     });
     mod_sokol.linkLibrary(lib_sokol);
@@ -156,6 +158,7 @@ pub const LibSokolOptions = struct {
     use_wayland: bool = false,
     emsdk: ?*Build.Dependency = null,
     with_sokol_imgui: bool = false,
+    with_sokol_fontstash: bool = false,
 };
 pub fn buildLibSokol(b: *Build, options: LibSokolOptions) !*Build.Step.Compile {
     const lib = b.addStaticLibrary(.{
@@ -285,6 +288,15 @@ pub fn buildLibSokol(b: *Build, options: LibSokolOptions) !*Build.Step.Compile {
     if (options.with_sokol_imgui) {
         lib.addCSourceFile(.{
             .file = b.path(csrc_root ++ "sokol_imgui.c"),
+            .flags = cflags,
+        });
+    }
+
+    // optional sokol_fontstash support, the called is required to also
+    // add the fontstash include path to the returned compile step
+    if (options.with_sokol_fontstash) {
+        lib.addCSourceFile(.{
+            .file = b.path(csrc_root ++ "sokol_fontstash.c"),
             .flags = cflags,
         });
     }
